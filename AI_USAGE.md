@@ -45,8 +45,6 @@ it was not the correct way, and asked the AI to change the implementation.
   library or the existing stack already provides. I asked for the standard classes instead.
 * **Rejected: too many interfaces.** The AI added an interface for almost every class, even with a
   single implementation. I removed them to keep the design simple.
-* **Rejected: executor-based async.** The AI implemented asynchronous publishing with its own
-  executor. I asked it to use the SDK's `sendAsync` instead (see the `@Async` item above).
 * **Rejected: hard-coded passwords.** Several times the AI put passwords and credentials directly in
   the code. I moved them to configuration and environment variables (`.env.example`) and now check
   each diff for secrets before keeping it.
@@ -54,10 +52,45 @@ it was not the correct way, and asked the AI to change the implementation.
   with one subclass per status (`EventNotFoundException`, `EventConflictException`,
   `InvalidRequestException`). I asked for a single class with `notFound`, `conflict` and `badRequest`
   factories, because the subclasses differed only by status and type.
+* **Accepted: removing redundant checks from `CurrencyValidator`.** The AI added an uppercase check and
+  a length check around `Currency.getInstance`, which already rejects those inputs. I checked the
+  behaviour in `jshell` and asked for the validator to rely on the lookup alone.
+* **Accepted: a shorter `Location` builder.** The AI built the `Location` header with a multi-step
+  builder. I asked for a URI template with `.encode()` and `buildAndExpand`, which encodes the event ID
+  and keeps the same header value. The tests that assert the header still pass.
 * **Accepted: jittered SQS retry delay.** The AI's backoff was deterministic, so messages that failed
   together, for example during a Mongo outage, would all become visible again at the same time. I asked
   for "equal jitter" (between half and all of the exponential ceiling). The random source is injected,
   so the tests can check the bounds exactly.
+
+* **Accepted: merging `EventProcessor` and `DefaultEventProcessor`.** I asked whether the processing
+  design was too complex. The AI had an interface with a single implementation, so we merged them into
+  one concrete `@Component`. The tests that used lambdas as the processor now use a mock.
+* **Accepted: removing the delegating `process(String eventId)` overload.** It only forwarded to the
+  other method with the value "unavailable". I told the AI to remove it.
+* **Accepted: simplifying "lost ownership".** The AI explained that a slow worker's update matches
+  nothing when recovery has handed the event to another worker, and that this is what protects against
+  overwriting newer state. It then offered to drop the separate `LOST_OWNERSHIP` outcome, because the
+  listener treated it like `IN_PROGRESS_ELSEWHERE`. I left that choice to the AI. The check stays, and
+  `handleLostClaim` now returns `IN_PROGRESS_ELSEWHERE`.
+* **Accepted: parameterized tests for `RetryBackoff`.** After adding jitter, the AI wrote 23 separate
+  tests. I asked for `@ParameterizedTest` so the ceiling cases are a table, and the jitter-bound tests
+  use an injected random function.
+* **Accepted: splitting long methods without changing behavior.** I found the failure-handling catch in
+  `EventProcessingService` hard to read, so it moved into `handleBusinessFailure`. `FailureReason.from`
+  was split into `isSensitive` and `redactEventValues`. The A/D comments and the log output stayed the
+  same.
+* **Used AI to read code before deleting it.** Before removing anything, I asked whether a class was in
+  use. `StuckProcessingRecovery` has no direct callers, but it is a scheduled, conditionally enabled
+  component, and without it a crashed worker would leave events in PROCESSING forever. It stayed.
+
+## Limits and remaining risks
+
+* The business step must be idempotent. A live worker slower than the stale-PROCESSING threshold can
+  run it twice. The `attempts` fencing token only prevents the slower worker from overwriting a newer
+  result.
+* `maxAttempts` = `maxReceiveCount` is not checked at startup, because that needs an extra SQS call.
+* FAILED events are terminal. Someone has to inspect them and reset the state to reprocess.
 
 ## How AI output was verified
 
