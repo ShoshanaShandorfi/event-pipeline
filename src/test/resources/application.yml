@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: event-pipeline
+  cloud:
+    aws:
+      sqs:
+        enabled: ${aws.sqs.consumer.enabled}
+
+server:
+  port: 8080
+
+aws:
+  region: us-east-1
+  sqs:
+    endpoint: http://localhost:4566
+    queue-name: test-queue
+    dlq-name: test-dlq
+    consumer:
+      enabled: false
+      max-messages: 10
+      wait-time-seconds: 20
+      visibility-timeout-seconds: 30
+      worker-threads: 4
+      shutdown-wait-seconds: 25
+
+pipeline:
+  processing:
+    max-attempts: 3
+    retry-backoff-base-seconds: 5
+    retry-backoff-cap-seconds: 60
+  relay:
+    enabled: false
+    interval-seconds: 1
+    stale-received-threshold-seconds: 60
+    batch-size: 100
+  recovery:
+    enabled: false
+    interval-seconds: 1
+    stale-processing-threshold-seconds: 300

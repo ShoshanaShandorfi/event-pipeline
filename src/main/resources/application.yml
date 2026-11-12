@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: ${APP_NAME}
+  cloud:
+    aws:
+      sqs:
+        # Spring Cloud AWS SQS (@SqsListener) follows the single consumer switch below.
+        enabled: ${aws.sqs.consumer.enabled}
+  data:
+    mongodb:
+      uri: mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DATABASE}?authSource=admin
+      auto-index-creation: false
+      representation:
+        big-decimal: decimal128
+
+server:
+  port: ${SERVER_PORT}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+aws:
+  region: ${AWS_REGION}
+  sqs:
+    # Absent against real AWS; only ever set for LocalStack / local development.
+    endpoint: ${AWS_SQS_ENDPOINT:}
+    queue-name: ${AWS_SQS_QUEUE_NAME}
+    dlq-name: ${AWS_SQS_DLQ_NAME}
+    consumer:
+      enabled: ${AWS_SQS_CONSUMER_ENABLED:true}
+      max-messages: ${AWS_SQS_CONSUMER_MAX_MESSAGES:10}
+      wait-time-seconds: ${AWS_SQS_CONSUMER_WAIT_TIME_SECONDS:20}
+      visibility-timeout-seconds: ${AWS_SQS_CONSUMER_VISIBILITY_TIMEOUT_SECONDS:30}
+      worker-threads: ${AWS_SQS_CONSUMER_WORKER_THREADS:4}
+      shutdown-wait-seconds: ${AWS_SQS_CONSUMER_SHUTDOWN_WAIT_SECONDS:25}
+
+pipeline:
+  processing:
+    # MUST equal the main queue redrive maxReceiveCount; Compose passes the same env var to both.
+    max-attempts: ${PROCESSING_MAX_ATTEMPTS:3}
+    retry-backoff-base-seconds: ${RETRY_BACKOFF_BASE_SECONDS:5}
+    retry-backoff-cap-seconds: ${RETRY_BACKOFF_CAP_SECONDS:60}
+  relay:
+    enabled: ${RELAY_ENABLED:true}
+    interval-seconds: ${RELAY_INTERVAL_SECONDS:10}
+    stale-received-threshold-seconds: ${RELAY_STALE_RECEIVED_THRESHOLD_SECONDS:60}
+    batch-size: ${RELAY_BATCH_SIZE:100}
+  recovery:
+    enabled: ${RECOVERY_ENABLED:true}
+    interval-seconds: ${RECOVERY_INTERVAL_SECONDS:10}
+    # MUST exceed SQS visibility timeout AND maximum expected business processing time.
+    stale-processing-threshold-seconds: ${RECOVERY_STALE_PROCESSING_THRESHOLD_SECONDS:300}
+
+# In AWS, the application would use the default credentials provider chain and an IAM role.
+# Real secrets would come from AWS Secrets Manager or SSM Parameter Store instead of being embedded here.
