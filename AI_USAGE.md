@@ -87,3 +87,13 @@ it was not the correct way, and asked the AI to change the implementation.
   404 for unknown routes, so those requests returned 500. I asked for the class to extend
   `ResponseEntityExceptionHandler`, so standard MVC errors keep their status and headers, and added
   integration tests for an unknown route (404) and an unsupported method (405 with an `Allow` header).
+* **Caught: settings duplicated in two places.** The AI's Compose file repeated every setting, with
+  its default, that `application.yml` already defined. Changing a default in one place could leave the
+  other stale. I asked for Compose to pass `.env` through and keep defaults only in `application.yml`.
+* **Caught: a removed default that would break real AWS.** While trimming the configuration, the AI
+  removed the empty default from `AWS_SQS_ENDPOINT`. Against real AWS, where the variable is absent by
+  design, the application would fail to start. I restored the default (`${AWS_SQS_ENDPOINT:}`).
+* **Accepted: a startup check for a cross-setting rule.** Several settings depend on each other, but
+  the AI left the rule in comments only. I asked for `PipelineSettingsValidator`, which stops startup
+  when the stale-PROCESSING threshold is not greater than the SQS visibility timeout. The
+  `maxAttempts` = `maxReceiveCount` rule is still not checked, because that needs an extra SQS call.
