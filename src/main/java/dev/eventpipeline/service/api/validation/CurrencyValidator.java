@@ -6,9 +6,9 @@ import jakarta.validation.ConstraintValidatorContext;
 import java.util.Currency;
 
 /**
- * Accepts only uppercase three-letter codes that {@link Currency#getInstance(String)} recognises.
- * The uppercase check is explicit because {@code Currency.getInstance} is case-sensitive anyway,
- * but a clear precondition keeps the intent obvious and matches the Mongo schema pattern.
+ * Accepts only codes that {@link Currency#getInstance(String)} recognises. That lookup is already
+ * case-sensitive and rejects anything that is not a known three-letter ISO 4217 code, so no extra
+ * format checks are needed.
  */
 public class CurrencyValidator implements ConstraintValidator<ValidCurrency, String> {
 
@@ -19,7 +19,7 @@ public class CurrencyValidator implements ConstraintValidator<ValidCurrency, Str
         }
         try {
             Currency.getInstance(value);
-            return value.length() == 3 && value.equals(value.toUpperCase(java.util.Locale.ROOT));
+            return true;
         } catch (IllegalArgumentException e) {
             return false;
         }

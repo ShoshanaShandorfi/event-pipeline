@@ -1,6 +1,6 @@
 package dev.eventpipeline.service.api;
 
-import dev.eventpipeline.service.api.exception.InvalidRequestException;
+import dev.eventpipeline.service.api.exception.ApiException;
 import dev.eventpipeline.service.api.exception.ProblemTypes;
 import dev.eventpipeline.service.domain.Event;
 import dev.eventpipeline.service.domain.EventType;
@@ -51,7 +51,7 @@ class CustomerEventControllerTest {
     @Test
     void getCustomerEvents_fromAfterToReturns400() throws Exception {
         when(eventQueryService.getCustomerEvents(anyString(), any(), any(), any(), anyInt(), anyInt()))
-                .thenThrow(new InvalidRequestException("'from' must not be after 'to'"));
+                .thenThrow(ApiException.badRequest("'from' must not be after 'to'"));
 
         mockMvc.perform(get("/api/customers/cust-1/events")
                         .param("from", "2025-01-02T00:00:00Z")
@@ -63,7 +63,7 @@ class CustomerEventControllerTest {
     @Test
     void getCustomerEvents_nonNumericPageReturns400WithValidationFailedType() throws Exception {
         // Exercises MethodArgumentTypeMismatchException (Spring's own query-param binding failure),
-        // a different code path from InvalidRequestException but still mapped to validation-failed.
+        // a different code path from ApiException.badRequest but still mapped to validation-failed.
         mockMvc.perform(get("/api/customers/cust-1/events").param("page", "not-a-number"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value(ProblemTypes.VALIDATION_FAILED.toString()));

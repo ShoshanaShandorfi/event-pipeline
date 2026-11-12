@@ -1,6 +1,5 @@
 package dev.eventpipeline.service.api;
 
-import dev.eventpipeline.service.api.exception.EventNotFoundException;
 import dev.eventpipeline.service.api.exception.ProblemTypes;
 import dev.eventpipeline.service.domain.Event;
 import dev.eventpipeline.service.domain.EventType;

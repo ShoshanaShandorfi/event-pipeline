@@ -1,7 +1,6 @@
 package dev.eventpipeline.service.service.query;
 
-import dev.eventpipeline.service.api.exception.EventNotFoundException;
-import dev.eventpipeline.service.api.exception.InvalidRequestException;
+import dev.eventpipeline.service.api.exception.ApiException;
 import dev.eventpipeline.service.domain.Event;
 import dev.eventpipeline.service.domain.EventStatus;
 import dev.eventpipeline.service.repository.EventRepository;
@@ -34,23 +33,23 @@ public class EventQueryService {
 
     public Event getEvent(String eventId) {
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Event with eventId '" + eventId + "' was not found"));
+                .orElseThrow(() -> ApiException.notFound("Event with eventId '" + eventId + "' was not found"));
     }
 
     public Page<Event> getCustomerEvents(String customerId, String from, String to, String status, int page, int size) {
         Instant fromInstant = parseInstant(from, "from");
         Instant toInstant = parseInstant(to, "to");
         if (fromInstant != null && toInstant != null && fromInstant.isAfter(toInstant)) {
-            throw new InvalidRequestException("'from' must not be after 'to'");
+            throw ApiException.badRequest("'from' must not be after 'to'");
         }
 
         EventStatus eventStatus = parseStatus(status);
 
         if (page < 0) {
-            throw new InvalidRequestException("'page' must not be negative");
+            throw ApiException.badRequest("'page' must not be negative");
         }
         if (size < MIN_PAGE_SIZE || size > MAX_PAGE_SIZE) {
-            throw new InvalidRequestException("'size' must be between " + MIN_PAGE_SIZE + " and " + MAX_PAGE_SIZE);
+            throw ApiException.badRequest("'size' must be between " + MIN_PAGE_SIZE + " and " + MAX_PAGE_SIZE);
         }
 
         Pageable pageable = PageRequest.of(page, size);
@@ -64,7 +63,7 @@ public class EventQueryService {
         try {
             return Instant.parse(raw);
         } catch (DateTimeParseException ex) {
-            throw new InvalidRequestException("'" + fieldName + "' must be a valid ISO-8601 instant");
+            throw ApiException.badRequest("'" + fieldName + "' must be a valid ISO-8601 instant");
         }
     }
 
@@ -75,7 +74,7 @@ public class EventQueryService {
         try {
             return EventStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new InvalidRequestException("'status' must be one of " + Arrays.toString(EventStatus.values()));
+            throw ApiException.badRequest("'status' must be one of " + Arrays.toString(EventStatus.values()));
         }
     }
 }

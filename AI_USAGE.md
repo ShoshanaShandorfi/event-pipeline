@@ -50,6 +50,14 @@ it was not the correct way, and asked the AI to change the implementation.
 * **Rejected: hard-coded passwords.** Several times the AI put passwords and credentials directly in
   the code. I moved them to configuration and environment variables (`.env.example`) and now check
   each diff for secrets before keeping it.
+* **Accepted: one `ApiException` with factory methods.** The AI first created an abstract base class
+  with one subclass per status (`EventNotFoundException`, `EventConflictException`,
+  `InvalidRequestException`). I asked for a single class with `notFound`, `conflict` and `badRequest`
+  factories, because the subclasses differed only by status and type.
+* **Accepted: jittered SQS retry delay.** The AI's backoff was deterministic, so messages that failed
+  together, for example during a Mongo outage, would all become visible again at the same time. I asked
+  for "equal jitter" (between half and all of the exponential ceiling). The random source is injected,
+  so the tests can check the bounds exactly.
 
 ## How AI output was verified
 
@@ -69,3 +77,13 @@ it was not the correct way, and asked the AI to change the implementation.
 * After the publisher simplification, the test base class tracked in-flight sends through a Spring
   spy bean. `SqsRedriveIntegrationTest` has no Spring context, so the field was null and the test
   failed with `NullInsteadOfMock`. The full run caught it and the tracking now skips that case.
+* The AI created the `events` indexes only when it created the collection. Collections that already
+  existed never got the `customerId` or `status`/`updatedAt` indexes, so recovery and relay would
+  scan the whole collection. I asked for the indexes to be ensured on every startup. The next
+  version then called `createIndex` every time, which can be slow on a large collection and needs
+  index-creation rights. I asked for a check first, so `EventCollectionInitializer` lists the
+  existing indexes and creates only the missing ones.
+* The first `GlobalExceptionHandler` had a catch-all `Exception` handler that also caught Spring's own
+  404 for unknown routes, so those requests returned 500. I asked for the class to extend
+  `ResponseEntityExceptionHandler`, so standard MVC errors keep their status and headers, and added
+  integration tests for an unknown route (404) and an unsupported method (405 with an `Allow` header).

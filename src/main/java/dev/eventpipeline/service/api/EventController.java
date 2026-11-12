@@ -3,12 +3,11 @@ package dev.eventpipeline.service.api;
 import dev.eventpipeline.service.api.dto.CreateEventRequest;
 import dev.eventpipeline.service.api.dto.EventAcceptedResponse;
 import dev.eventpipeline.service.api.dto.EventResponse;
-import dev.eventpipeline.service.api.exception.EventConflictException;
+import dev.eventpipeline.service.api.exception.ApiException;
 import dev.eventpipeline.service.domain.Event;
 import dev.eventpipeline.service.service.ingestion.EventCreationCommand;
 import dev.eventpipeline.service.service.ingestion.EventIngestionResult;
 import dev.eventpipeline.service.service.ingestion.EventIngestionService;
-import dev.eventpipeline.service.service.ingestion.IngestionOutcome;
 import dev.eventpipeline.service.service.query.EventQueryService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -51,18 +50,17 @@ public class EventController {
 
         // The service never throws for a payload conflict; it reports it on the result object, so the
         // HTTP-status decision (and the 409 ProblemDetail body) stays entirely at this edge.
-        if (result.outcome() == IngestionOutcome.CONFLICT) {
+        if (result.conflict()) {
             log.warn("eventId={} rejected: already exists with a different payload", event.getEventId());
-            throw new EventConflictException("Event with eventId '" + event.getEventId() + "' already exists with a different payload");
+            throw ApiException.conflict("Event with eventId '" + event.getEventId() + "' already exists with a different payload");
         }
 
         log.info("eventId={} accepted (duplicate={})", event.getEventId(), result.duplicate());
 
         EventAcceptedResponse body = new EventAcceptedResponse(event.getEventId(), event.getStatus(), result.duplicate());
-        URI location = UriComponentsBuilder.fromPath("/api/events")
-                .pathSegment(event.getEventId())
-                .build()
+        URI location = UriComponentsBuilder.fromPath("/api/events/{eventId}")
                 .encode()
+                .buildAndExpand(event.getEventId())
                 .toUri();
 
         ResponseEntity.BodyBuilder responseBuilder = ResponseEntity.accepted().location(location);

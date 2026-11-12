@@ -114,6 +114,20 @@ class EventApiIntegrationTest extends IngestionIntegrationTestSupport {
     }
 
     @Test
+    void unknownRoute_returns404NotServerError() {
+        ResponseEntity<JsonNode> response = restTemplate.getForEntity("/api/no-such-route", JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void unsupportedMethod_returns405WithAllowHeader() {
+        ResponseEntity<JsonNode> response = restTemplate.exchange(
+                "/api/events/evt-1", org.springframework.http.HttpMethod.DELETE, null, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+        assertThat(response.getHeaders().getAllow()).isNotEmpty();
+    }
+
+    @Test
     void duplicateWithSamePayloadButSubMillisecondTimestampAndTrailingZeroAmountStillReturns202() {
         // Regression test: a sub-millisecond timestamp and a decimal with trailing zeros must still be
         // recognized as the *same* payload after a real Mongo round-trip (Date truncates to millis,

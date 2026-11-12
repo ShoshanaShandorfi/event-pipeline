@@ -87,13 +87,6 @@
             <groupId>io.awspring.cloud</groupId>
             <artifactId>spring-cloud-aws-starter-sqs</artifactId>
         </dependency>
-        <!-- Explicit compile-time dependency so the SQS client builder can configure connection /
-             socket timeouts via ApacheHttpClient.builder(); otherwise it is only a runtime-scoped
-             transitive dependency of the sqs artifact and is not visible at compile time. -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>apache-client</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -103,11 +96,6 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mongodb</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

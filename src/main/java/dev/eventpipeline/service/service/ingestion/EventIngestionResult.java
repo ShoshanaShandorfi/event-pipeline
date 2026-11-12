@@ -1,6 +1,7 @@
 package dev.eventpipeline.service.service.ingestion;
 
 import dev.eventpipeline.service.domain.Event;
+import java.util.Objects;
 
 /**
  * Result of an ingestion attempt. {@code outcome} fully describes what happened (created / duplicate /
@@ -11,7 +12,16 @@ import dev.eventpipeline.service.domain.Event;
  */
 public record EventIngestionResult(Event event, IngestionOutcome outcome) {
 
+    public EventIngestionResult {
+        Objects.requireNonNull(event, "event must not be null");
+        Objects.requireNonNull(outcome, "outcome must not be null");
+    }
+
     public boolean duplicate() {
         return outcome == IngestionOutcome.DUPLICATE;
+    }
+
+    public boolean conflict() {
+        return outcome == IngestionOutcome.CONFLICT;
     }
 }

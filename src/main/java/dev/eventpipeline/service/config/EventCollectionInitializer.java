@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Configuration
 @Slf4j
@@ -52,16 +54,32 @@ public class EventCollectionInitializer {
                         .append("validationLevel", "strict")
                         .append("validationAction", "error"));
 
-                MongoCollection<Document> events = database.getCollection(COLLECTION_NAME);
-                events.createIndex(new Document("customerId", 1).append("createdAt", -1),
-                        new IndexOptions().name("customerId_1_createdAt_-1"));
-                events.createIndex(new Document("status", 1).append("updatedAt", 1),
-                        new IndexOptions().name("status_1_updatedAt_1"));
-                log.info("Created '{}' collection with strict validator and required indexes.", COLLECTION_NAME);
-                return;
+                log.info("Created '{}' collection with strict validator.", COLLECTION_NAME);
+            } else {
+                log.info("Existing '{}' collection detected; leaving validator unchanged. Schema evolution requires a migration run with an elevated role.", COLLECTION_NAME);
             }
 
-            log.info("Existing '{}' collection detected; leaving validator unchanged. Schema evolution requires a migration run with an elevated role.", COLLECTION_NAME);
+            ensureIndexes(database.getCollection(COLLECTION_NAME));
         };
+    }
+
+    // Only creates indexes that are missing, so startup issues no index command (and needs no
+    // createIndex privilege) when everything already exists.
+    private void ensureIndexes(MongoCollection<Document> events) {
+        Set<String> existing = new HashSet<>();
+        events.listIndexes().forEach(index -> existing.add(index.getString("name")));
+
+        createIfMissing(events, existing, "customerId_1_createdAt_-1",
+                new Document("customerId", 1).append("createdAt", -1));
+        createIfMissing(events, existing, "status_1_updatedAt_1",
+                new Document("status", 1).append("updatedAt", 1));
+    }
+
+    private void createIfMissing(MongoCollection<Document> events, Set<String> existing, String name, Document keys) {
+        if (existing.contains(name)) {
+            return;
+        }
+        events.createIndex(keys, new IndexOptions().name(name));
+        log.info("Created missing index '{}' on '{}'.", name, COLLECTION_NAME);
     }
 }
