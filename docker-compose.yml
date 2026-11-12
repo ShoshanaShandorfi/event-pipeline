@@ -4,42 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: event-pipeline-app
+    # Every variable in .env is passed through as-is. Optional settings (consumer, retry, relay,
+    # recovery) have their defaults in application.yml only; set them in .env to override.
     env_file:
       - .env
-    environment:
-      APP_NAME: ${APP_NAME}
-      SERVER_PORT: ${SERVER_PORT}
-      MONGO_HOST: ${MONGO_HOST}
-      MONGO_PORT: ${MONGO_PORT}
-      MONGO_DATABASE: ${MONGO_DATABASE}
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
-      AWS_REGION: ${AWS_REGION}
-      AWS_SQS_ENDPOINT: ${AWS_SQS_ENDPOINT}
-      AWS_SQS_QUEUE_NAME: ${AWS_SQS_QUEUE_NAME}
-      AWS_SQS_DLQ_NAME: ${AWS_SQS_DLQ_NAME}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      # Consumer settings are non-secret and have application defaults; only overridden
-      # when actually present in the environment / .env file.
-      AWS_SQS_CONSUMER_ENABLED: ${AWS_SQS_CONSUMER_ENABLED:-true}
-      AWS_SQS_CONSUMER_MAX_MESSAGES: ${AWS_SQS_CONSUMER_MAX_MESSAGES:-10}
-      AWS_SQS_CONSUMER_WAIT_TIME_SECONDS: ${AWS_SQS_CONSUMER_WAIT_TIME_SECONDS:-20}
-      AWS_SQS_CONSUMER_VISIBILITY_TIMEOUT_SECONDS: ${AWS_SQS_CONSUMER_VISIBILITY_TIMEOUT_SECONDS:-30}
-      AWS_SQS_CONSUMER_WORKER_THREADS: ${AWS_SQS_CONSUMER_WORKER_THREADS:-4}
-      AWS_SQS_CONSUMER_SHUTDOWN_WAIT_SECONDS: ${AWS_SQS_CONSUMER_SHUTDOWN_WAIT_SECONDS:-25}
-      # MUST equal main queue maxReceiveCount; LocalStack init receives the same value below.
-      PROCESSING_MAX_ATTEMPTS: ${PROCESSING_MAX_ATTEMPTS:-3}
-      RETRY_BACKOFF_BASE_SECONDS: ${RETRY_BACKOFF_BASE_SECONDS:-5}
-      RETRY_BACKOFF_CAP_SECONDS: ${RETRY_BACKOFF_CAP_SECONDS:-60}
-      RELAY_ENABLED: ${RELAY_ENABLED:-true}
-      RELAY_INTERVAL_SECONDS: ${RELAY_INTERVAL_SECONDS:-10}
-      RELAY_STALE_RECEIVED_THRESHOLD_SECONDS: ${RELAY_STALE_RECEIVED_THRESHOLD_SECONDS:-60}
-      RELAY_BATCH_SIZE: ${RELAY_BATCH_SIZE:-100}
-      RECOVERY_ENABLED: ${RECOVERY_ENABLED:-true}
-      RECOVERY_INTERVAL_SECONDS: ${RECOVERY_INTERVAL_SECONDS:-10}
-      # Larger than visibility timeout AND maximum expected processing time.
-      RECOVERY_STALE_PROCESSING_THRESHOLD_SECONDS: ${RECOVERY_STALE_PROCESSING_THRESHOLD_SECONDS:-300}
     ports:
       - "8080:8080"
     depends_on:
@@ -54,11 +22,10 @@ services:
     env_file:
       - .env
     environment:
+      # Only the variables the image expects under a different name; the rest come from .env.
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
@@ -73,16 +40,13 @@ services:
   localstack:
     image: localstack/localstack:4.14
     container_name: event-pipeline-localstack
+    # The init script reads AWS_SQS_QUEUE_NAME, AWS_SQS_DLQ_NAME and PROCESSING_MAX_ATTEMPTS from .env.
+    # PROCESSING_MAX_ATTEMPTS MUST equal the main queue maxReceiveCount (both default to 3 when unset).
     env_file:
       - .env
     environment:
       SERVICES: sqs
       AWS_DEFAULT_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_SQS_QUEUE_NAME: ${AWS_SQS_QUEUE_NAME}
-      AWS_SQS_DLQ_NAME: ${AWS_SQS_DLQ_NAME}
-      PROCESSING_MAX_ATTEMPTS: ${PROCESSING_MAX_ATTEMPTS:-3}
     ports:
       - "4566:4566"
     volumes:

@@ -31,7 +31,7 @@ aws:
   region: ${AWS_REGION}
   sqs:
     # Absent against real AWS; only ever set for LocalStack / local development.
-    endpoint: ${AWS_SQS_ENDPOINT}
+    endpoint: ${AWS_SQS_ENDPOINT:}
     queue-name: ${AWS_SQS_QUEUE_NAME}
     dlq-name: ${AWS_SQS_DLQ_NAME}
     consumer:

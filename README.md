@@ -19,7 +19,9 @@ port 27017 and LocalStack port 4566; these ports must be free.
 
 ## Run locally
 
-Copy the example environment file using your shell:
+**Important: create a `.env` file before starting.** It is git-ignored because it holds credentials,
+so it is not in the repository, and the stack will not start correctly without it. Copy
+[.env.example](.env.example) to `.env` using your shell:
 
 | Shell | Command |
 | --- | --- |
@@ -27,10 +29,10 @@ Copy the example environment file using your shell:
 | PowerShell | `Copy-Item .env.example .env` |
 | bash | `cp .env.example .env` |
 
-Edit the ignored `.env` locally. Fill its empty MongoDB credential fields and LocalStack-only AWS
-credential fields before starting. Use different root/application MongoDB usernames and generated
-alphanumeric local passwords to avoid the current bootstrap script and MongoDB URI escaping limits.
-Use non-production LocalStack credentials, not real AWS keys. No credential defaults are supplied.
+Then fill in the empty MongoDB credential fields and the LocalStack-only AWS credential fields. Use
+different root/application MongoDB usernames and generated alphanumeric local passwords to avoid the
+current bootstrap script and MongoDB URI escaping limits. Use non-production LocalStack credentials,
+not real AWS keys. No credential defaults are supplied.
 
 ```text
 docker compose up --build -d
@@ -50,7 +52,7 @@ curl.exe --fail --silent --show-error http://localhost:8080/actuator/health
 
 Expect `{"status":"UP","groups":["liveness","readiness"]}`. The SQS queues are created by the
 LocalStack ready hook. MongoDB initialization creates the application user; application startup creates
-the event collection, validator and indexes if the collection is absent.
+the event collection and validator if the collection is absent, and creates any missing indexes.
 
 Stop and remove the stack:
 

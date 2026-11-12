@@ -191,7 +191,9 @@ active. Old DLQ copies must be handled separately. There is no replay endpoint o
 | Processing recovery | 10 s | 300 s `PROCESSING` | Drains all eligible events per run. Does not publish. |
 
 The recovery threshold must be longer than the SQS visibility timeout and the longest expected
-processing time. This is documented but not enforced. Both jobs can be turned off independently.
+processing time. `PipelineSettingsValidator` fails startup if it is not longer than the visibility
+timeout (when the consumer and recovery are both enabled); the processing-time part is a deployment
+concern and is not checked. Both jobs can be turned off independently.
 
 **Known gap.** A slow live worker can run the business step again after recovery re-claims the event.
 Fencing blocks its late write, but there is no visibility heartbeat or lease renewal.
